@@ -1,0 +1,105 @@
+---
+title: "DATA620-W6"
+author: "Ana Collado"
+format: html
+embed-resources: true
+fig-align: center
+toc: true
+toc-depth: 6
+toc-expand: true
+execute: 
+  warning: false
+  error: false
+editor: visual
+jupyter: python3
+---
+
+::: {.callout-note appearance="minimal" icon="false"}
+[Here is a
+dataset](http://vlado.fmf.uni-lj.si/pub/networks/data/ucinet/ucidata.htm#davis)
+that shows a simple 2-node network: the attendance of 18 Southern Women at 14
+social events.
+
+Small “musty” datasets like that from this 1941 study have proven very valuable
+in testing and comparing new network algorithms.
+
+[Click here for Python code to create
+dataset](https://networkx.github.io/documentation/stable/auto_examples/algorithms/plot_davis_club.html)
+
+**What can you infer about the relationships between (1) the women, and (2) the
+social events?**
+:::
+
+# Two Mode Networks- Davis Social Southern Club Women
+
+```{python}
+#| echo: true
+#| warning: false
+#| error: false
+
+import networkx as nx
+from networkx.algorithms import bipartite
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+import seaborn as sns
+from plotly import graph_objects as go
+from networkx.drawing.nx_agraph import graphviz_layout
+```
+
+## Data Load
+
+```{python}
+graph1= nx.davis_southern_women_graph()
+```
+
+```{python}
+#--adding some distinction--
+nodecolor=["#E0E446" if graph1.nodes[n]["bipartite"]== 0 else "#F5722B" for n in graph1.nodes()]
+
+#-- visualizing the graph--
+plt.figure(figsize= (12,12))
+nx.draw(graph1, with_labels=True, node_color= nodecolor, node_size=3000, edge_color= "#334ED8", font_size=12)
+plt.show()
+```
+
+Checking out the list and attributes:
+
+```{python}
+nodes1= graph1.nodes(data=True)
+edges1= graph1.edges(data=True)
+```
+
+I do prefer to see data as a dataframe, so I'll create two data
+
+```{python}
+nodes1= pd.DataFrame.from_dict(dict(graph1.nodes(data=True), orient= "index"))
+nodes1.head()
+
+edges1= nx.to_pandas_edgelist(graph1)
+edges1.head()
+```
+
+### Characterizing Network
+
+### Creating Matrices
+
+### Analyzing 2 Mode Networks
+
+Create two separate networks
+
+Define what the associations mean
+
+rows and columns represent a single node type
+
+## The Data
+
+References:
+
+<http://toreopsahl.com/tnet/two-mode-networks/defining-two-mode-networks/>
+
+<http://toreopsahl.com/tnet/two-mode-networks/projection/%20>
+
+Social Network Analysis: Analyzing Two-Mode Networks
+
+<https://www.youtube.com/watch?v=o0Mxjll7-6o>
