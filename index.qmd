@@ -49,52 +49,202 @@ from networkx.drawing.nx_agraph import graphviz_layout
 
 ## Data Load
 
+The data can be imported through NetworkX.
+
 ```{python}
 graph1= nx.davis_southern_women_graph()
 ```
+
+I'll add some color to the nodes to differenciate between event and person.
 
 ```{python}
 #--adding some distinction--
 nodecolor=["#E0E446" if graph1.nodes[n]["bipartite"]== 0 else "#F5722B" for n in graph1.nodes()]
 
 #-- visualizing the graph--
+pos= nx.spring_layout(graph1, seed=212)
 plt.figure(figsize= (12,12))
-nx.draw(graph1, with_labels=True, node_color= nodecolor, node_size=3000, edge_color= "#334ED8", font_size=12)
+nx.draw(graph1, with_labels=True, node_color= nodecolor, node_size=3000, edge_color= "#334ED8", font_size=12, pos=pos)
 plt.show()
 ```
 
-Checking out the list and attributes:
+While it may be tempting to assume relationships because of clusters of women in
+the graph, but what the graph is really depicting is each woman's relationship
+to an event not relationship between the women; a two mode bipartite graph. To
+infer about relationships the graph must be changed into a one-mode network.
+
+First I'll create a matrix. The events should be the columns and the rows will
+be the women. Attendance will appear as a 1 or a 0. I'll create the data frame
+from the graph created and and go from there
 
 ```{python}
-nodes1= graph1.nodes(data=True)
-edges1= graph1.edges(data=True)
-```
-
-I do prefer to see data as a dataframe, so I'll create two data
-
-```{python}
-nodes1= pd.DataFrame.from_dict(dict(graph1.nodes(data=True), orient= "index"))
-nodes1.head()
-
+#-- changing graph edges to df--
 edges1= nx.to_pandas_edgelist(graph1)
-edges1.head()
 ```
 
-### Characterizing Network
+```{python}
+nodes1= pd.DataFrame.from_dict(dict(graph1.nodes(data=True)), orient= "index")
+nodes1= nodes1.reset_index()
+nodes1.columns= ["Node", "Bipartite"]
+nodes1
+```
 
-### Creating Matrices
+```{python}
+people= nodes1[nodes1["Bipartite"]== 0]["Node"].tolist()
+events= nodes1[nodes1["Bipartite"]== 1]["Node"].tolist()
 
-### Analyzing 2 Mode Networks
+matrix_a= edges1.pivot_table(index="source", columns="target", aggfunc=len, fill_value=0)
+matrix_a
+```
 
-Create two separate networks
+`matrix_a` shows what each woman's attendance is in relation to the events; who
+attended what.
 
-Define what the associations mean
+$$woman \ \times \ event  $$\
+\
+From here we'll multiply the matrix by its transpose. The matrix's transpose
+would each event in relation to who attended.
 
-rows and columns represent a single node type
+$$
+event\ \times \ woman
+$$
 
-## The Data
+So in multiplying matirx_a by its transpose, we get what overlaps, or the
+women's shared connections. Each value is how many events a pair attended
+together.
 
-References:
+$$
+woman \ \times \ woman
+$$
+
+```{python}
+relationships= matrix_a @ matrix_a.T
+relationships
+```
+
+Now we have the foundation for making assumptions about the social network of
+the women. Ill remove the women's relationship with themselves (diagonal values)
+because it'll overpower my visualizations.
+
+I'll visualize the graph:
+
+```{python}
+#-- filling the diagonal of matrix--
+np.fill_diagonal(relationships.values, 0)
+social_club= nx.from_pandas_adjacency(relationships)
+
+
+plt.figure(figsize= (12,12))
+nx.draw(social_club)
+plt.title("Social Network of Davis Club Women")
+plt.show()
+```
+
+Chapter 5 of () defines a function for whats called the Island Method, which
+will basically isolate the connections by weight, creating "islands" of strongly
+connected networks.
+
+```{python}
+#-- chapter 5 function--
+def trim_edges(G, weight=1):
+    G2= nx.Graph()
+    for u, v, d in G.edges(data=True):
+        if d["weight"] > weight:
+            G2.add_edge(u, v, **d)
+    return G2
+```
+
+```{python}
+#--determining threshold to use in func--
+weights= list(nx.get_edge_attributes(social_club, "weight").values())
+pd.Series(weights).value_counts().sort_index()
+
+#-- running the function--
+trimmed= trim_edges(social_club, weight= 4)
+
+#--visualizing--
+plt.figure(figsize= (12,12))
+nx.draw(trimmed)
+plt.title("Social Network of Davis Club Women")
+plt.show()
+```
+
+Most edges are gathered at threshold 1 and 2, selecting 3 or 4 as the threshold
+would be best.
+
+## Extracting the top relationships
+
+```{python}
+social_edges= nx.to_pandas_edgelist(social_club).sort_values("weight", ascending=False)
+print(social_edges.head(5))
+```
+
+With the analysis completed I can infer that Evelyn, Brenda and Katherina are
+central and important in this social club.
+
+### Event Networks
+
+To make inferences about the events, we'll flip the matrix \* matrix transpose
+and quickly redo the same analysis.
+
+```{python}
+#-- overlap matrix--
+event_rel= matrix_a.T @ matrix_a
+
+#--removing the diag values--
+np.fill_diagonal(event_rel.values, 0)
+event_g= nx.from_pandas_adjacency(event_rel)
+
+#--visualizing--
+plt.figure(figsize= (12,12))
+nx.draw(event_g, pos=pos)
+plt.title("Events Network of Davis Club Women")
+plt.show()
+```
+
+The network,
+
+And now well trim and infer:
+
+```{python}
+
+#--picking a threshold--
+weights2= list(nx.get_edge_attributes(event_g, "weight").values())
+pd.Series(weights2).value_counts().sort_index()
+
+#-- trim function--
+trimmed2= trim_edges(event_g, weight= 4)
+
+#--visualizing--
+plt.figure(figsize= (12,12))
+nx.draw(trimmed2)
+plt.title("Event x Event Network of Davis Club Women")
+plt.show()
+
+#--List
+event_edges= nx.to_pandas_edgelist(event_g).sort_values("weight", ascending=False)
+print(event_edges.head(5))
+```
+
+E8 appears 4 times and is identified as central, connecting directly to E5, E6,
+E7, and E9.
+
+## Conclusion
+
+In modifying a two mode network, into a one mode network, one can gain accurate
+insights into social networks' relationship structure. The island method helps
+identify relationships that are most central by implementing a threshold. Within
+the Davis Club member relationship structure, we can infer that some of the
+women have these *island* connections. They have a little social circle within
+the club. We can also infer that Event 8 was a hub within the events network,
+alot of the same members attended along with the events E8 was tied to.
+
+--------------------------------------------------------------------------------
+
+## Bibliography:
+
+Tsvetovat, M., & Kouznetsov, A. (2011). Social network analysis for startups:
+Finding connections on the social web (1st ed.). O'Reilly Media.
 
 <http://toreopsahl.com/tnet/two-mode-networks/defining-two-mode-networks/>
 
