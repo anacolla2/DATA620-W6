@@ -246,10 +246,10 @@ In modifying a two mode network, into a one mode network, one can gain accurate
 insights into social networks' relationship structure. The island method helps
 identify relationships that are most central by implementing a threshold. Within
 the Davis Club member relationship structure, we can infer that some of the
-women have these *island* connections. I think Brenda, Evelyn, and Katherina
-have a little social circle within the club. We can also infer that Event 8 was
-a hub within the events network, al ot of the same members attended along with
-the events E8 was tied to.
+women have these *island* connections. I think Brenda, Evelyn, and Katherina are
+central to inner social circles within the club. We can also infer that Event 8
+was a hub within the events network, many of of the same members attended along
+with the events E8 was tied to (6,7,8 and 9).
 
 --------------------------------------------------------------------------------
 
